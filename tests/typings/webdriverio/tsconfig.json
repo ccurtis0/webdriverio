@@ -2,11 +2,15 @@
   "compilerOptions": {
     "outDir": "dist",
     "noImplicitAny": true,
-    "lib": ["es2018"],
+    "lib": ["es2018", "dom"],
     "types": [
       "webdriverio",
       "@wdio/allure-reporter",
-      "@wdio/selenium-standalone-service"
+      "@wdio/selenium-standalone-service",
+      "@wdio/crossbrowsertesting-service",
+      "@wdio/firefox-profile-service",
+      "@wdio/static-server-service",
+      "@wdio/testingbot-service"
     ],
     "typeRoots": ["./types"]
   }

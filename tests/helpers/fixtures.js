@@ -13,6 +13,7 @@ afterSession called
 `
 
 export const LAUNCHER_LOGS = `onPrepare called
+onWorkerStart called
 onComplete called
 `
 
@@ -40,6 +41,9 @@ onRunnerEnd
 export const JASMINE_REPORTER_LOGS = `onRunnerStart
 onHookStart
 onHookEnd
+onTestStart
+onTestPass
+onTestEnd
 onSuiteStart
 onHookStart
 onHookEnd
@@ -63,6 +67,26 @@ onSuiteEnd
 onSuiteEnd
 onHookStart
 onHookEnd
+onBeforeCommand
+onAfterCommand
+onRunnerEnd
+`
+
+export const CUCUMBER_REPORTER_LOGS = `onRunnerStart
+onSuiteStart
+onSuiteStart
+onHookStart
+onHookEnd
+onHookStart
+onHookEnd
+onTestStart
+onTestPass
+onHookStart
+onHookEnd
+onHookStart
+onHookEnd
+onSuiteEnd
+onSuiteEnd
 onBeforeCommand
 onAfterCommand
 onRunnerEnd

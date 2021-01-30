@@ -6,21 +6,20 @@ import {
     SUITES,
     SUITES_NO_TESTS,
     SUITES_WITH_DATA_TABLE,
-    REPORT,
-    SAUCELABS_REPORT,
-    SAUCELABS_EU_REPORT,
-    SAUCELABS_HEADLESS_REPORT,
     SUITES_NO_TESTS_WITH_HOOK_ERROR,
     SUITES_MULTIPLE_ERRORS
 } from './__fixtures__/testdata'
 
 const reporter = new SpecReporter({})
 
+const defaultCaps = { browserName: 'loremipsum', version: 50, platform: 'Windows 10', sessionId: 'foobar' }
 const fakeSessionId = 'ba86cbcb70774ef8a0757c1702c3bdf9'
-const getRunnerConfig = (config) => {
+const getRunnerConfig = (config = {}) => {
     return Object.assign({}, RUNNER, {
+        capabilities: config.capabilities || defaultCaps,
         config,
-        sessionId: fakeSessionId
+        sessionId: fakeSessionId,
+        isMultiremote: Boolean(config.isMultiremote)
     })
 }
 
@@ -168,59 +167,74 @@ describe('SpecReporter', () => {
             it('should print the report to the console', () => {
                 const runner = getRunnerConfig({ hostname: 'localhost' })
                 printReporter.printReport(runner)
-                expect(printReporter.write).toBeCalledWith(REPORT)
+                expect(printReporter.write.mock.calls).toMatchSnapshot()
             })
 
-            it('should print link to SauceLabs job details page', () => {
+            it('should print link to Sauce Labs job details page', () => {
+                const runner = getRunnerConfig({
+                    hostname: 'ondemand.saucelabs.com'
+                })
+                printReporter.printReport(runner)
+                expect(printReporter.write.mock.calls).toMatchSnapshot()
+            })
+
+            it('should print jobs of all instance when run with multiremote', () => {
                 const runner = getRunnerConfig({
                     hostname: 'ondemand.saucelabs.com',
-                    capabilities: {}
+                    capabilities: {
+                        browserA: { sessionId: 'foobar' },
+                        browserB: { sessionId: 'barfoo' }
+                    },
+                    isMultiremote: true
                 })
                 printReporter.printReport(runner)
-                expect(printReporter.write).toBeCalledWith(SAUCELABS_REPORT)
+                expect(printReporter.write.mock.calls).toMatchSnapshot()
             })
 
-            it('should print link to SauceLabs job details page if run with Sauce Connect (w3c)', () => {
+            it('should print link to Sauce Labs job details page if run with Sauce Connect (w3c)', () => {
                 const runner = getRunnerConfig({
-                    capabilities: { 'sauce:options': 'foobar' },
+                    capabilities: {
+                        ...defaultCaps,
+                        'sauce:options': 'foobar'
+                    },
                     hostname: 'localhost'
                 })
                 printReporter.printReport(runner)
-                expect(printReporter.write).toBeCalledWith(SAUCELABS_REPORT)
+                expect(printReporter.write.mock.calls).toMatchSnapshot()
             })
 
-            it('should print link to SauceLabs job details page if run with Sauce Connect (jsonwp)', () => {
+            it('should print link to Sauce Labs job details page if run with Sauce Connect (jsonwp)', () => {
                 const runner = getRunnerConfig({
-                    capabilities: { tunnelIdentifier: 'foobar' },
+                    capabilities: {
+                        tunnelIdentifier: 'foobar',
+                        ...defaultCaps
+                    },
                     hostname: 'localhost'
                 })
                 printReporter.printReport(runner)
-                expect(printReporter.write).toBeCalledWith(SAUCELABS_REPORT)
+                expect(printReporter.write.mock.calls).toMatchSnapshot()
             })
 
-            it('should print link to SauceLabs EU job details page', () => {
+            it('should print link to Sauce Labs EU job details page', () => {
                 printReporter.printReport(getRunnerConfig({
-                    capabilities: {},
                     hostname: 'ondemand.saucelabs.com',
                     region: 'eu'
                 }))
-                expect(printReporter.write).toBeCalledWith(SAUCELABS_EU_REPORT)
+                expect(printReporter.write.mock.calls).toMatchSnapshot()
 
                 printReporter.write.mockClear()
 
                 printReporter.printReport(getRunnerConfig({
-                    capabilities: {},
                     hostname: 'ondemand.saucelabs.com',
                     region: 'eu-central-1'
                 }))
-                expect(printReporter.write).toBeCalledWith(SAUCELABS_EU_REPORT)
+                expect(printReporter.write.mock.calls).toMatchSnapshot()
 
                 printReporter.printReport(getRunnerConfig({
-                    capabilities: {},
                     hostname: 'ondemand.saucelabs.com',
                     headless: true
                 }))
-                expect(printReporter.write).toBeCalledWith(SAUCELABS_HEADLESS_REPORT)
+                expect(printReporter.write.mock.calls).toMatchSnapshot()
             })
         })
 
@@ -242,7 +256,7 @@ describe('SpecReporter', () => {
             printReporter.suiteUids = SUITE_UIDS
             printReporter.suites = SUITES_NO_TESTS
 
-            printReporter.printReport(RUNNER)
+            printReporter.printReport(getRunnerConfig())
 
             expect(printReporter.write.mock.calls.length).toBe(0)
         })
@@ -250,21 +264,20 @@ describe('SpecReporter', () => {
 
     describe('getHeaderDisplay', () => {
         it('should validate header output', () => {
-            const result = reporter.getHeaderDisplay(RUNNER)
+            const result = reporter.getHeaderDisplay(getRunnerConfig())
 
             expect(result.length).toBe(3)
             expect(result[0]).toBe('Spec: /foo/bar/baz.js')
-            expect(result[1]).toBe('Running: loremipsum')
-            expect(result[2]).toBe('')
+            expect(result[1]).toBe('Running: loremipsum (v50) on Windows 10')
         })
 
         it('should validate header output in multiremote', () => {
-            const result = tmpReporter.getHeaderDisplay({ ...RUNNER, isMultiremote: true })
+            const result = tmpReporter.getHeaderDisplay(
+                getRunnerConfig({ isMultiremote: true }))
 
             expect(result.length).toBe(3)
             expect(result[0]).toBe('Spec: /foo/bar/baz.js')
-            expect(result[1]).toBe('Running: MultiremoteBrowser')
-            expect(result[2]).toBe('')
+            expect(result[1]).toBe('Running: MultiremoteBrowser (v50) on Windows 10')
         })
     })
 
@@ -459,6 +472,25 @@ describe('SpecReporter', () => {
         })
     })
 
+    describe('custom getSymbol', () => {
+        const options = { symbols: { passed: 'Y', failed: 'N' } }
+        beforeEach(() => {
+            tmpReporter = new SpecReporter(options)
+        })
+
+        it('should get new passed symbol', () => {
+            expect(tmpReporter.getSymbol('passed')).toBe(options.symbols.passed)
+        })
+
+        it('should get new failed symbol', () => {
+            expect(tmpReporter.getSymbol('failed')).toBe(options.symbols.failed)
+        })
+
+        it('should get the skipped symbol that is not set', () => {
+            expect(tmpReporter.getSymbol('skipped')).toBe('-')
+        })
+    })
+
     describe('getColor', () => {
         it('should get green', () => {
             expect(tmpReporter.getColor('passed')).toBe('green')
@@ -479,18 +511,25 @@ describe('SpecReporter', () => {
     })
 
     describe('getEnviromentCombo', () => {
+        it('should return Multibrowser as capability if multiremote is used', () => {
+            expect(tmpReporter.getEnviromentCombo({
+                browserName: 'chrome',
+                platform: 'Windows 8.1'
+            }, true, true)).toBe('MultiremoteBrowser on Windows 8.1')
+        })
+
+        it('should return Multibrowser as capability if multiremote is used without platform', () => {
+            expect(tmpReporter.getEnviromentCombo({
+                browserName: 'chrome',
+            }, true, true)).toBe('MultiremoteBrowser on (unknown)')
+        })
+
         it('should return verbose desktop combo', () => {
             expect(tmpReporter.getEnviromentCombo({
                 browserName: 'chrome',
                 version: 50,
                 platform: 'Windows 8.1'
             })).toBe('chrome (v50) on Windows 8.1')
-        })
-
-        it('should return Multibrowser as capability if multiremote is used', () => {
-            expect(tmpReporter.getEnviromentCombo({
-                browserName: 'chrome'
-            }, true, true)).toBe('MultiremoteBrowser')
         })
 
         it('should return preface desktop combo', () => {
@@ -569,6 +608,50 @@ describe('SpecReporter', () => {
                 os: 'Windows',
                 os_version: '10'
             }, false)).toBe('Chrome 50 Windows 10')
+        })
+
+        it('should return verbose desktop combo when using BrowserStack capabilities without os', () => {
+            expect(tmpReporter.getEnviromentCombo({
+                browser: 'Chrome',
+                browser_version: 50,
+            })).toBe('Chrome (v50) on (unknown)')
+        })
+
+        it('should return preface desktop combo when using BrowserStack capabilities without os', () => {
+            expect(tmpReporter.getEnviromentCombo({
+                browser: 'Chrome',
+                browser_version: 50,
+            }, false)).toBe('Chrome 50 (unknown)')
+        })
+
+        it('should return verbose desktop combo when using BrowserStack capabilities without os_version', () => {
+            expect(tmpReporter.getEnviromentCombo({
+                browser: 'Chrome',
+                browser_version: 50,
+                os: 'Windows',
+            })).toBe('Chrome (v50) on Windows')
+        })
+
+        it('should return preface desktop combo when using BrowserStack capabilities without os_version', () => {
+            expect(tmpReporter.getEnviromentCombo({
+                browser: 'Chrome',
+                browser_version: 50,
+                os: 'Windows',
+            }, false)).toBe('Chrome 50 Windows')
+        })
+
+        it('should return verbose desktop combo without platform', () => {
+            expect(tmpReporter.getEnviromentCombo({
+                browserName: 'chrome',
+                version: 50,
+            })).toBe('chrome (v50) on (unknown)')
+        })
+
+        it('should return preface desktop combo without platform', () => {
+            expect(tmpReporter.getEnviromentCombo({
+                browserName: 'chrome',
+                version: 50,
+            }, false)).toBe('chrome 50 (unknown)')
         })
     })
 })

@@ -66,7 +66,10 @@ export function getUniqueIdentifier (target, sourceLocation) {
         let name = target.name || target.text
         const line = sourceLocation.line || ''
 
-        if (Array.isArray(target.examples)) {
+        if (!name) {
+            console.warn('missing name for ScenarioOutline:', sourceLocation.uri)
+            name = path.basename(sourceLocation.uri)
+        } else if (Array.isArray(target.examples)) {
             target.examples.forEach((example) => {
                 example.tableHeader.cells.forEach((header, idx) => {
                     if (name.indexOf('<' + header.value + '>') === -1) {
@@ -201,10 +204,7 @@ export function getTestCaseSteps (feature, scenario, pickle, testCasePreparedEve
 
         // set proper text for step
         if (step && eventStep.sourceLocation) {
-            step = {
-                ...step,
-                text: getStepText(step, pickle)
-            }
+            step = enhanceStepWithPickleData(step, pickle)
         }
 
         // if step was not found `eventStep` is a user defined hook
@@ -220,17 +220,71 @@ export function getTestCaseSteps (feature, scenario, pickle, testCasePreparedEve
 }
 
 /**
- * get resolved step text for table steps, example:
+ * get resolved step text and argument for table steps, example:
  * Then User `<userId>` with `<password>` is logged in
  * Then User `someUser` with `Password12` is logged in
- * @param   {object}    step        cucumber's step
+ * @param   {object}    origStep    cucumber's step
  * @param   {object}    pickle      cucumber's pickleEvent
  * @returns {string}
  */
-export function getStepText (step, pickle) {
+export function enhanceStepWithPickleData (origStep, pickle) {
+    const step = { ...origStep }
     const pickleStep = pickle.steps.find(s => s.locations.some(loc => loc.line === step.location.line))
 
-    return pickleStep ? pickleStep.text : step.text
+    if (pickleStep) {
+        step.text = pickleStep.text
+
+        // replace variable with real value
+        if (step.argument && step.argument.rows && Array.isArray(pickleStep.arguments)) {
+            // build map like { line: { column: value } }
+            const pickleStepValueLocation = {}
+
+            // {
+            //     arguments: [{
+            //         rows: [{
+            //             cells: [{
+            //                 location: { ... },
+            //                 value: "winter"
+            //             }, {
+            //                 location: { ... },
+            //                 value: "cold"
+            //             }]
+            //         }]
+            //     }]
+            // }
+            pickleStep.arguments.forEach(pStepArg => {
+                pStepArg.rows.forEach(pStepRow => {
+                    pStepRow.cells.forEach(pStepCell => {
+                        if (!pickleStepValueLocation[pStepCell.location.line]) {
+                            pickleStepValueLocation[pStepCell.location.line] = {}
+                        }
+                        pickleStepValueLocation[pStepCell.location.line][pStepCell.location.column] = pStepCell.value
+                    })
+                })
+            })
+
+            // {
+            //     argument: {
+            //         rows: [{
+            //             cells: [{
+            //                 location: { ... },
+            //                 value: "<season>"
+            //             }, {
+            //                 location: { ... },
+            //                 value: "<weather>"
+            //             }]
+            //         }]
+            //     }
+            // }
+            step.argument.rows.forEach(stepRow => {
+                stepRow.cells.forEach(stepCell => {
+                    stepCell.value = pickleStepValueLocation[stepCell.location.line][stepCell.location.column]
+                })
+            })
+        }
+    }
+
+    return step
 }
 
 /**

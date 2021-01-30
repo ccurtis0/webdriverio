@@ -2,9 +2,11 @@
 
 const fs = require('fs')
 const path = require('path')
+const { changeType } = require('./generate-typings-utils')
 const { PROTOCOLS } = require('../constants')
 
 const TEMPLATE_PATH = path.join(__dirname, '..', 'templates', 'devtools.tpl.d.ts')
+const paramTypeMap = require('./webdriver-param-types.json')
 
 const lines = []
 const protocolName = 'devtools'
@@ -19,9 +21,14 @@ for (const [, methods] of Object.entries(definition)) {
         const vars = variables
             .filter((v) => v.name != 'sessionId' && v.name != 'elementId')
             .map((v) => `${v.name}: string`)
-        const params = parameters.map((p) => `${p.name}${p.required === false ? '?' : ''}: ${p.type.toLowerCase()}`)
+        const params = parameters.map((p, idx) => {
+            const paramType = paramTypeMap[command] && paramTypeMap[command][idx] && paramTypeMap[command][idx].name === p.name
+                ? paramTypeMap[command][idx].type
+                : p.type.toLowerCase()
+            return `${p.name}${p.required === false ? '?' : ''}: ${paramType}`
+        })
         const varsAndParams = vars.concat(params)
-        let returnValue = returns ? returns.type.toLowerCase() : 'void'
+        let returnValue = returns ? changeType(returns.type) : 'void'
         returnValue = returnValue === '*' ? 'any' : returnValue
         lines.push(`        ${command}(${varsAndParams.join(', ')}): ${returnValue};`)
     }

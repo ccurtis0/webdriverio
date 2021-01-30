@@ -3,26 +3,37 @@ import assert from 'assert'
 // eslint-disable-next-line
 import { Then } from 'cucumber'
 
-Then('the title of the page should be {string}', (expectedTitle) => {
+Then(/^the title of the page should be:$/, (expectedTitle) => {
     const actualTitle = browser.getTitle()
     assert.equal(actualTitle, expectedTitle)
 })
 
 Then('the title of the page should be {string} async', async (expectedTitle) => {
-    const actualTitle = await browser.getTitle()
-    assert.equal(actualTitle, expectedTitle)
+    expect(browser).toHaveTitle(expectedTitle)
 })
 
-let someFlag = false
-Then('I should fail once but pass on the second run', { wrapperOptions: { retry: 1 } }, () => {
-    if (!someFlag) {
-        someFlag = true
+let hasRun = false
+Then('I should fail once but pass on the second run', { wrapperOptions: { retry: 1 } }, function () {
+    if (!hasRun) {
+        hasRun = true
+        assert.equal(this.wdioRetries, 0)
         throw new Error('boom!')
     }
 
-    someFlag = false
-    assert.equal(1, 1)
+    assert.equal(this.wdioRetries, 1)
 })
 
 Then('this is ambiguous', () => {
+})
+
+Then('this test should fail', () => {
+    assert.equal(true, false, 'This step should have never been executed :-(')
+})
+
+let fail = true
+Then('this steps fails only the first time used', () => {
+    if (fail) {
+        fail = false
+        assert.equal(true, false)
+    }
 })

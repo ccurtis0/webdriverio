@@ -11,6 +11,12 @@ class SpecReporter extends WDIOReporter {
         options = Object.assign({ stdout: true }, options)
         super(options)
 
+        this.symbols = {
+            passed: options.symbols?.passed || '✓',
+            skipped: options.symbols?.skipped || '-',
+            failed: options.symbols?.failed || '✖'
+        }
+
         // Keep track of the order that suites were called
         this.suiteUids = []
 
@@ -75,12 +81,27 @@ class SpecReporter extends WDIOReporter {
             return
         }
 
+        const testLinks = runner.isMultiremote
+            ? Object.entries(runner.capabilities).map(([instanceName, capabilities]) => this.getTestLink({
+                config: { ...runner.config, ...{ capabilities } },
+                sessionId: capabilities.sessionId,
+                isMultiremote: runner.isMultiremote,
+                instanceName
+            }))
+            : this.getTestLink(runner)
         const output = [
             ...this.getHeaderDisplay(runner),
+            '',
             ...results,
             ...this.getCountDisplay(duration),
             ...this.getFailureDisplay(),
-            ...this.getTestLink(runner)
+            ...(testLinks.length
+                /**
+                 * if we have test links add an empty line
+                 */
+                ? ['', ...testLinks]
+                : []
+            )
         ]
 
         // Prefix all values with the browser information
@@ -95,9 +116,9 @@ class SpecReporter extends WDIOReporter {
     /**
      * get link to saucelabs job
      */
-    getTestLink ({ config, sessionId }) {
+    getTestLink ({ config, sessionId, isMultiremote, instanceName }) {
         const isSauceJob = (
-            config.hostname.includes('saucelabs') ||
+            (config.hostname && config.hostname.includes('saucelabs')) ||
             // only show if multiremote is not used
             config.capabilities && (
                 // check w3c caps
@@ -111,7 +132,8 @@ class SpecReporter extends WDIOReporter {
             const dc = config.headless
                 ? '.us-east-1'
                 : ['eu', 'eu-central-1'].includes(config.region) ? '.eu-central-1' : ''
-            return ['', `Check out job at https://app${dc}.saucelabs.com/tests/${sessionId}`]
+            const multiremoteNote = isMultiremote ? ` ${instanceName}` : ''
+            return [`Check out${multiremoteNote} job at https://app${dc}.saucelabs.com/tests/${sessionId}`]
         }
 
         return []
@@ -128,9 +150,15 @@ class SpecReporter extends WDIOReporter {
         // Spec file name and enviroment information
         const output = [
             `Spec: ${runner.specs[0]}`,
-            `Running: ${combo}`,
-            '',
+            `Running: ${combo}`
         ]
+
+        /**
+         * print session ID if not multiremote
+         */
+        if (runner.capabilities.sessionId) {
+            output.push(`Session ID: ${runner.capabilities.sessionId}`)
+        }
 
         return output
     }
@@ -173,6 +201,13 @@ class SpecReporter extends WDIOReporter {
             // Display the title of the suite
             output.push(`${suiteIndent}${suite.title}`)
 
+            // display suite description (Cucumber only)
+            if (suite.description) {
+                output.push(...suite.description.trim().split('\n')
+                    .map((l) => `${suiteIndent}${this.chalk.grey(l.trim())}`))
+                output.push('') // empty line
+            }
+
             const eventsToReport = this.getEventsToReport(suite)
             for (const test of eventsToReport) {
                 const testTitle = test.title
@@ -209,21 +244,21 @@ class SpecReporter extends WDIOReporter {
         const output = []
 
         // Get the passes
-        if(this.stateCounts.passed > 0) {
+        if (this.stateCounts.passed > 0) {
             const text = `${this.stateCounts.passed} passing ${duration}`
             output.push(this.chalk[this.getColor('passed')](text))
             duration = ''
         }
 
         // Get the failures
-        if(this.stateCounts.failed > 0) {
+        if (this.stateCounts.failed > 0) {
             const text = `${this.stateCounts.failed} failing ${duration}`.trim()
             output.push(this.chalk[this.getColor('failed')](text))
             duration = ''
         }
 
         // Get the skipped tests
-        if(this.stateCounts.skipped > 0) {
+        if (this.stateCounts.skipped > 0) {
             const text = `${this.stateCounts.skipped} skipped ${duration}`.trim()
             output.push(this.chalk[this.getColor('skipped')](text))
         }
@@ -244,7 +279,7 @@ class SpecReporter extends WDIOReporter {
             const suiteTitle = suite.title
             const eventsToReport = this.getEventsToReport(suite)
             for (const test of eventsToReport) {
-                if(test.state !== 'failed') {
+                if (test.state !== 'failed') {
                     continue
                 }
 
@@ -307,21 +342,7 @@ class SpecReporter extends WDIOReporter {
      * @return {String}       Symbol to display
      */
     getSymbol (state) {
-        let symbol = '?' // in case of an unknown state
-
-        switch (state) {
-        case 'passed':
-            symbol = '✓'
-            break
-        case 'skipped':
-            symbol = '-'
-            break
-        case 'failed':
-            symbol = '✖'
-            break
-        }
-
-        return symbol
+        return this.symbols[state] || '?'
     }
 
     /**
@@ -358,26 +379,37 @@ class SpecReporter extends WDIOReporter {
     getEnviromentCombo (caps, verbose = true, isMultiremote = false) {
         const device = caps.deviceName
         const browser = isMultiremote ? 'MultiremoteBrowser' : (caps.browserName || caps.browser)
-        const version = caps.version || caps.platformVersion || caps.browser_version
-        const platform = caps.os ? (caps.os + ' ' + caps.os_version) : (caps.platform || caps.platformName)
+        /**
+         * fallback to different capability types:
+         * browserVersion: W3C format
+         * version: JSONWP format
+         * platformVersion: mobile format
+         * browser_version: invalid BS capability
+         */
+        const version = caps.browserVersion || caps.version || caps.platformVersion || caps.browser_version
+        /**
+         * fallback to different capability types:
+         * platformName: W3C format
+         * platform: JSONWP format
+         * os, os_version: invalid BS capability
+         */
+        const platform = caps.platformName || caps.platform || (caps.os ? caps.os + (caps.os_version ?  ` ${caps.os_version}` : '') : '(unknown)')
 
         // Mobile capabilities
         if (device) {
             const program = (caps.app || '').replace('sauce-storage:', '') || caps.browserName
             const executing = program ? `executing ${program}` : ''
-
             if (!verbose) {
                 return `${device} ${platform} ${version}`
             }
-
             return `${device} on ${platform} ${version} ${executing}`.trim()
         }
 
         if (!verbose) {
-            return (browser + ' ' + (version || '') + ' ' + (platform || '')).trim()
+            return (browser + (version ? ` ${version} ` : ' ') + (platform)).trim()
         }
 
-        return browser + (version ? ` (v${version})` : '') + (platform ? ` on ${platform}` : '')
+        return browser + (version ? ` (v${version})` : '') + (` on ${platform}`)
     }
 }
 

@@ -45,8 +45,8 @@ exports.config = {
     waitforTimeout: 150000,
     //
     // Default timeout in milliseconds for request
-    // if Selenium Grid doesn't send response
-    connectionRetryTimeout: 90000,
+    // if browser driver or grid doesn't send response
+    connectionRetryTimeout: 120000,
     //
     // Default request retries count
     connectionRetryCount: 3,
@@ -90,9 +90,14 @@ exports.config = {
     // onPrepare: function (config, capabilities) {
     // },
     //
+    // Gets executed before a worker process is spawned and can be used to initialise specific service
+    // for that worker as well as modify runtime environments in an async fashion.
+    // onWorkerStart: function (cid, caps, specs, args, execArgv) {
+    // },
+    //
     // Gets executed before test execution begins. At this point you can access to all global
     // variables like `browser`. It is the perfect place to define custom commands.
-    // before: function (capabilities, specs) {
+    // before: function (capabilities, specs, browser) {
     // },
     //
     // Hook that gets executed before the suite starts
@@ -148,11 +153,11 @@ exports.config = {
     // },
     //
     // Runs before a Cucumber Step
-    // beforeStep: function (uri, feature, stepData, context) {
+    // beforeStep: function ({ uri, feature, step }, context) {
     // },
     //
     // Runs after a Cucumber Step
-    // afterStep: function (uri, feature, { error, result, duration, passed }, stepData, context) {
+    // afterStep: function ({ uri, feature, step }, context, { error, result, duration, passed, retries }) {
     // },
     //
     // Gets executed after all tests are done. You still have access to all global variables from

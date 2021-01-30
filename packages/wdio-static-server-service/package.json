@@ -1,21 +1,13 @@
 {
   "name": "@wdio/static-server-service",
-  "version": "5.14.4",
-  "description": "A WebdriverIO service that <provide service description>",
+  "version": "6.10.10",
+  "description": "A WebdriverIO service that can serve your static websites",
   "author": "Christian Bromann <christian@saucelabs.com>",
   "homepage": "https://github.com/webdriverio/webdriverio/tree/master/packages/wdio-static-server-service",
   "license": "MIT",
   "main": "./build/index",
   "engines": {
-    "node": ">= 8.11.0"
-  },
-  "scripts": {
-    "build": "run-s clean compile",
-    "clean": "rimraf ./build",
-    "compile": "babel src/ -d build/ --config-file ../../babel.config.js",
-    "test": "run-s test:*",
-    "test:eslint": "eslint src test",
-    "test:unit": "jest"
+    "node": ">=10.0.0"
   },
   "repository": {
     "type": "git",
@@ -35,12 +27,16 @@
     "url": "https://github.com/webdriverio/webdriverio/issues"
   },
   "dependencies": {
-    "@wdio/logger": "5.13.2",
+    "@types/express": "^4.17.8",
+    "@types/fs-extra": "^9.0.1",
+    "@types/morgan": "^1.9.1",
+    "@wdio/logger": "6.10.10",
     "express": "^4.14.0",
-    "fs-extra": "^0.30.0",
+    "fs-extra": "^9.0.0",
     "morgan": "^1.7.0"
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "types": "static-server-service.d.ts"
 }

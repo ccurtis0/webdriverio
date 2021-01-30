@@ -2,9 +2,25 @@
 /// <reference types="webdriver"/>
 
 declare namespace WebDriver {
-    interface ClientOptions {
-        isDevTools: boolean;
-        getPuppeteer: (...args: any[]) => any;
+    interface ChromeOptions {
+        /**
+         * `devtools` only, switch headless mode by either `headless` flag or `--headless` argument but not both
+         */
+        headless?: boolean;
+    }
+
+    interface FirefoxOptions {
+        /**
+         * `devtools` only, switch headless mode by either `headless` flag or `--headless` argument but not both
+         */
+        headless?: boolean;
+    }
+
+    interface MicrosoftEdgeOptions {
+        /**
+         * `devtools` only, switch headless mode by either `headless` flag or `--headless` argument but not both
+         */
+        headless?: boolean;
     }
 }
 
@@ -26,4 +42,7 @@ declare namespace DevTools {
 
 declare module "devtools" {
     export default DevTools;
+
+    const SUPPORTED_BROWSER: string[]
+    export { SUPPORTED_BROWSER }
 }

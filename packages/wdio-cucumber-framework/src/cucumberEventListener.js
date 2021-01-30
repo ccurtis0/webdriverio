@@ -14,6 +14,7 @@ export default class CucumberEventListener extends EventEmitter {
         super()
         eventBroadcaster
             .on('gherkin-document', this.onGherkinDocument.bind(this))
+            .on('test-run-started', this.onTestRunStarted.bind(this))
             .on('pickle-accepted', this.onPickleAccepted.bind(this))
             .on('test-case-prepared', this.onTestCasePrepared.bind(this))
             .on('test-case-started', this.onTestCaseStarted.bind(this))
@@ -58,12 +59,12 @@ export default class CucumberEventListener extends EventEmitter {
     // }
     onGherkinDocument (gherkinDocEvent) {
         this.gherkinDocEvents.push(gherkinDocEvent)
+    }
 
-        const uri = gherkinDocEvent.uri
-        const doc = gherkinDocEvent.document
-        const feature = doc.feature
+    onTestRunStarted () {
+        const doc = this.gherkinDocEvents[this.gherkinDocEvents.length - 1]
 
-        this.emit('before-feature', uri, feature)
+        this.emit('before-feature', doc.uri, doc.document.feature)
     }
 
     // pickleEvent = {
@@ -84,8 +85,10 @@ export default class CucumberEventListener extends EventEmitter {
         this.acceptedPickles.push(pickleEvent)
     }
 
-    onTestCaseStarted () {
-        const { uri, pickle } = this.acceptedPickles.shift()
+    onTestCaseStarted (pickleEvent) {
+        const { uri, pickle } = this.acceptedPickles.find(item =>
+            item.uri === pickleEvent.sourceLocation.uri &&
+            item.pickle.locations[0].line === pickleEvent.sourceLocation.line)
         const doc = this.gherkinDocEvents.find(gde => gde.uri === uri).document
         const feature = doc.feature
         this.currentPickle = pickle
@@ -93,8 +96,9 @@ export default class CucumberEventListener extends EventEmitter {
         const testCasePreparedEvent = this.testCasePreparedEvents[this.testCasePreparedEvents.length - 1]
         const scenario = feature.children.find((child) => compareScenarioLineWithSourceLine(child, testCasePreparedEvent.sourceLocation))
         this.currentSteps = getTestCaseSteps(feature, scenario, pickle, testCasePreparedEvent)
+        this.currentPickle.description = scenario.description
 
-        this.emit('before-scenario', uri, feature, pickle)
+        this.emit('before-scenario', uri, feature, this.currentPickle)
     }
 
     // testStepStartedEvent = {

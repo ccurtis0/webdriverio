@@ -1,8 +1,9 @@
 import assert from 'assert'
 import os from 'os'
+import sync from '../../packages/wdio-sync'
+import { remote } from '../../packages/webdriverio'
 
 describe('Mocha smoke test', () => {
-
     let testJs = 'tests/mocha/test.js:'
 
     before(() => {
@@ -12,15 +13,18 @@ describe('Mocha smoke test', () => {
     })
 
     it('should return sync value', () => {
-        assert.equal(browser.getTitle(), 'Mock Page Title')
+        expect(browser).toHaveTitle('Mock Page Title')
     })
 
     let hasRun = false
-    it('should retry', () => {
+    it('should retry', function () {
         if (!hasRun) {
             hasRun = true
+            assert.equal(this.wdioRetries, 0)
             throw new Error('booom!')
         }
+
+        assert.equal(this.wdioRetries, 1)
     }, 1)
 
     it('should work fine after catching an error', () => {
@@ -46,6 +50,12 @@ describe('Mocha smoke test', () => {
         assert.equal(el.$('.selector-2').isExisting(), true)
     })
 
+    it('should allow to reload a session', () => {
+        const sessionIdBefore = browser.sessionId
+        browser.reloadSession()
+        expect(sessionIdBefore).not.toBe(browser.sessionId)
+    })
+
     it('should handle promises in waitUntil callback funciton', () => {
         const results = []
         const result = browser.waitUntil(() => {
@@ -63,11 +73,27 @@ describe('Mocha smoke test', () => {
             browser.waitUntil(() => {
                 elem.click()
                 return false
-            }, 1000)
+            }, { timeout: 1000 })
         } catch (err) {
             // ignored
         }
         assert.equal(JSON.stringify(elem.getSize()), JSON.stringify({ width: 1, height: 2 }))
+    })
+
+    it('should allow to run standalone mode synchronously', () => {
+        browser.clickScenario()
+
+        return remote({
+            runner: 'local',
+            hostname: 'localhost',
+            port: 4444,
+            path: '/',
+            capabilities: {
+                browserName: 'chrome'
+            }
+        }).then((remoteBrowser) => sync(() => {
+            assert.equal(remoteBrowser.getTitle(), 'Mock Page Title')
+        }))
     })
 
     describe('isDisplayed', () => {

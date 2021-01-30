@@ -18,6 +18,15 @@ Contributors have read-only access to source code and to submit changes via pull
 
 As Contributors gain experience and familiarity with the project, their profile within, and commitment to, the community will increase. At some stage, they may find themselves being nominated for committership by an existing Committer.
 
+To become a Contributor:
+
+* you have to have at least one pull request proposed, approved and merged or
+* you have helped responding to a variety of issues that help close them
+
+#### Process for Adding Contributors
+
+1. Add the GitHub user to the "Project Contributors" team
+
 ### Project Committers
 
 Committers are community members who have shown that they are committed to the continued development of the project through ongoing engagement with the community. Committers are given push access to the project's GitHub repos and must abide by the project's [Contribution Guidelines](/CONTRIBUTING.md).
@@ -50,8 +59,9 @@ A Committer who shows an above-average level of contribution to the project, par
 #### Process for Adding Committers
 
 1. Add the GitHub user to the "Project Committers" team
-2. Invite to Gitter team chatroom (`webdriverio/ProjectCommitters`)
-3. Tweet congratulations to the new committer from the WebdriverIO Twitter account
+1. Add person to the list of [Current Project Team Members](/AUTHORS.md)
+1. Invite to Gitter team chatroom (`webdriverio/ProjectCommitters`)
+1. Tweet congratulations to the new committer from the WebdriverIO Twitter account
 
 ### Technical Steering Committee (TSC)
 
@@ -92,9 +102,20 @@ A Committer is invited to become a TSC member by existing TSC members. A nominat
 
 1. Add the GitHub user to the "WebdriverIO TSC" team
 1. Set the GitHub user to have the "Owner" role for the WebdriverIO organization
+1. Move person from the list of Project Collaborators into the TSC list in [Current Project Team Members](/AUTHORS.md)
 1. Invite to the Gitter TSC chatroom (`webdriverio/TSC`)
 1. Add the TSC member as an admin to WebdriverIO Twitter Account
+1. Add the TSC member to the NPM organization
 1. Tweet congratulations to the new TSC member from the WebdriverIO Twitter account
+
+## Communication Channels
+
+The project maintains various channels for providing information, supporting development and enabling communication between team members. Adherence to the project's [Code of Conduct](/CODE_OF_CONDUCT.md) is strictly mandatory for all types of communication in these channels.
+
+- Twitter Account ([`@webdriverio`](https://twitter.com/webdriverio)): for communicating and promoting news around the project or project related topics.
+- [Gitter Support Channel](https://gitter.im/webdriverio/webdriverio): chat for all WebdriverIO users to seek help and support on problems using the project.
+- [Project Committers Channel](https://gitter.im/webdriverio/ProjectCommitters): private channel for members of the Project Committers team to discuss contributions and organise other collaborative efforts.
+- [TSC Channel](https://gitter.im/webdriverio/TSC): private channel for members of the TSC team to discuss project governance.
 
 ## Consensus Seeking Process
 
@@ -103,10 +124,6 @@ The TSC follows a [Consensus Seeking](https://en.wikipedia.org/wiki/Consensus-se
 When an agenda item has appeared to reach a consensus, the moderator will ask "Does anyone object?" as a final call for dissent from the consensus.
 
 If an agenda item cannot reach a consensus, a TSC member can call for either a closing vote or a vote to table the issue to the next meeting. The call for a vote must be approved by a majority of the TSC or else the discussion will continue. Simple majority wins.
-
-## Sponsorship
-
-The WebdriverIO project welcomes sponsorship of various organizations. Specific details are not yet available but in general we will accept monetary donations, contribution of code, contribution of dedicated committers, or donations of other goods or service (internet hosting, etc...). To begin the conversation, reach out to one of the TSC members.
 
 ## Raising Issues Related to Governance
 
